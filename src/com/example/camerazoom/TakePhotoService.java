@@ -25,7 +25,7 @@ public class TakePhotoService extends Service {
 	private Camera cameraObj;  
     private boolean hasCamera;
     public boolean isCameraOpened = false;  
-    String TAG = "MainActivity=>";
+    public static String TAG = "TakePhotoService=>";
     public static final int MEDIA_TYPE_IMAGE = 1;
     String createdPhotoPath;
 	Context context;
@@ -61,14 +61,11 @@ public class TakePhotoService extends Service {
     	if(hasCamera) {
     		cameraObj=getCameraInstance();
     		takePictureNoPreview();
-    		//new TakePhoto().execute("jk1");
     	} else {
     		Log.e("cameraInstance", "Device does not have Camera.");
     	}
     	
     	//Log.e("startId",String.valueOf(startId));
-    	
-    	
         return super.onStartCommand(intent, flags, startId);
     }
     
@@ -188,38 +185,37 @@ public class TakePhotoService extends Service {
     
     /** Create a File for saving an image or video */
     private File getOutputMediaFile(int type){
-        // To be safe, you should check that the SDCard is mounted
-        // using Environment.getExternalStorageState() before doing this.
-
-        File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
-                  Environment.DIRECTORY_PICTURES), "MyCameraApp");
-        // This location works best if you want the created images to be shared
-        // between applications and persist after your app has been uninstalled.
-
-        // Create the storage directory if it does not exist
-        if (! mediaStorageDir.exists()){
-            if (! mediaStorageDir.mkdirs()){
-                Log.d("MyCameraApp", "failed to create directory");
+        
+    	if(isExternalStorageAvailable()) {
+    		File mediaStorageDir = new File(Environment.getExternalStoragePublicDirectory(
+                    Environment.DIRECTORY_PICTURES), ".MyCameraApp");
+    		
+    		if (! mediaStorageDir.exists()){
+                if (! mediaStorageDir.mkdirs()){
+                    Log.d("MyCameraApp", "failed to create directory");
+                    return null;
+                }
+            }
+    		String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+            File mediaFile;
+            if (type == MEDIA_TYPE_IMAGE) { 
+            	
+            	createdPhotoPath = mediaStorageDir.getPath() + File.separator + "IMG_"+ timeStamp + ".jpg";
+            	
+                mediaFile = new File(createdPhotoPath);
+                
+                Log.e("Image is created=>", createdPhotoPath);
+            } else {
+            	Log.e("Image is not created=>", "Error");
+            	
                 return null;
             }
-        }
-
-        // Create a media file name
-        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        File mediaFile;
-        if (type == MEDIA_TYPE_IMAGE) { 
-        	
-        	createdPhotoPath = mediaStorageDir.getPath() + File.separator + "IMG_"+ timeStamp + ".jpg";
-        	
-            mediaFile = new File(createdPhotoPath);
-            
-            Log.e("Image is created=>", createdPhotoPath);
-        } else {
-        	Log.e("Image is not created=>", "Error");
-        	
-            return null;
-        }
-        return mediaFile;
+            return mediaFile;
+    	} else {
+    		Log.e("External Storage=>", "Either External Storage is not avilable or not Writable");
+    		return null;
+    	}
+        
     }
     
     public void releaseCamera() {
@@ -248,5 +244,32 @@ public class TakePhotoService extends Service {
     	   stopSelf();
     	}
     }
+    
+    private boolean isExternalStorageAvailable() {
 
+        String state = Environment.getExternalStorageState();
+        boolean mExternalStorageAvailable = false;
+        boolean mExternalStorageWriteable = false;
+
+        if (Environment.MEDIA_MOUNTED.equals(state)) {
+            // We can read and write the media
+            mExternalStorageAvailable = mExternalStorageWriteable = true;
+        } else if (Environment.MEDIA_MOUNTED_READ_ONLY.equals(state)) {
+            // We can only read the media
+            mExternalStorageAvailable = true;
+            mExternalStorageWriteable = false;
+        } else {
+            // Something else is wrong. It may be one of many other states, but
+            // all we need
+            // to know is we can neither read nor write
+            mExternalStorageAvailable = mExternalStorageWriteable = false;
+        }
+
+        if (mExternalStorageAvailable == true
+                && mExternalStorageWriteable == true) {
+            return true;
+        } else {
+            return false;
+        }
+    }
 }
